@@ -58,12 +58,8 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
 
                 if (result.Succeeded)
                 {
-                    _logger.LogInformation("User created a new account with password.");
-
-                    // Add user to selected role
                     await _userManager.AddToRoleAsync(user, model.Role);
 
-                    // If farmer, create corresponding farmer profile
                     if (model.Role == "Farmer")
                     {
                         var farmer = new Farmer
@@ -72,19 +68,8 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
                             Email = model.Email,
                             ContactNumber = model.ContactNumber
                         };
-
-                        try
-                        {
-                            await _context.Farmers.AddAsync(farmer);
-                            await _context.SaveChangesAsync();
-                            _logger.LogInformation($"Created farmer profile for {model.Email}");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error creating farmer profile");
-                            ModelState.AddModelError("", "Error creating farmer profile");
-                            return View(model);
-                        }
+                        await _context.Farmers.AddAsync(farmer);
+                        await _context.SaveChangesAsync();
                     }
 
                     await _signInManager.SignInAsync(user, isPersistent: false);
@@ -94,18 +79,17 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError(string.Empty, error.Description);
-                    _logger.LogWarning($"User creation error: {error.Description}");
                 }
             }
 
-        
             return View(model);
         }
 
-      
-    
 
-[HttpGet]
+
+
+
+        [HttpGet]
         public IActionResult Login(string returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;

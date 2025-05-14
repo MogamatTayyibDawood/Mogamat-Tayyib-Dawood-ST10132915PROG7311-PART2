@@ -12,9 +12,11 @@ namespace PROG7311_PART2_AgriEnergyConnect.Models
         public int TotalPages { get; private set; }
         public int PageSize { get; private set; }
         public int TotalCount { get; private set; }
+        public int TotalItems { get; private set; }
 
         public PaginatedList(List<T> items, int count, int pageIndex, int pageSize)
         {
+            TotalItems = count;
             PageIndex = pageIndex;
             TotalPages = (int)Math.Ceiling(count / (double)pageSize);
             PageSize = pageSize;

@@ -19,17 +19,27 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
         }
 
         // GET: Farmers
-        public async Task<IActionResult> Index(string searchString, int? pageNumber)
+        public async Task<IActionResult> Index(string searchTerm, string sortOrder, int? pageNumber)
         {
-            var farmers = _context.Farmers.AsQueryable();
+            ViewData["NameSort"] = string.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
+            ViewData["CurrentFilter"] = searchTerm;
 
-            if (!string.IsNullOrEmpty(searchString))
+            var farmers = from f in _context.Farmers
+                          select f;
+
+            if (!string.IsNullOrEmpty(searchTerm))
             {
                 farmers = farmers.Where(f =>
-                    f.Name.Contains(searchString) ||
-                    f.Email.Contains(searchString) ||
-                    f.ContactNumber.Contains(searchString));
+                    f.Name.Contains(searchTerm) ||
+                    f.Email.Contains(searchTerm) ||
+                    f.ContactNumber.Contains(searchTerm));
             }
+
+            farmers = sortOrder switch
+            {
+                "name_desc" => farmers.OrderByDescending(f => f.Name),
+                _ => farmers.OrderBy(f => f.Name),
+            };
 
             int pageSize = 10;
             return View(await PaginatedList<Farmer>.CreateAsync(farmers.AsNoTracking(), pageNumber ?? 1, pageSize));
@@ -65,12 +75,6 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Name,Email,ContactNumber")] Farmer farmer)
         {
-            // Check for existing email
-            if (await _context.Farmers.AnyAsync(f => f.Email == farmer.Email))
-            {
-                ModelState.AddModelError("Email", "Email already exists.");
-            }
-
             if (ModelState.IsValid)
             {
                 _context.Add(farmer);
@@ -106,13 +110,6 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
                 return NotFound();
             }
 
-            // Check for duplicate email
-            if (await _context.Farmers.AnyAsync(f => f.Email == farmer.Email && f.Id != farmer.Id))
-            {
-                ModelState.AddModelError("Email", "Email already exists.");
-                return View(farmer);
-            }
-
             if (ModelState.IsValid)
             {
                 try
@@ -129,7 +126,6 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
                     }
                     else
                     {
-                        TempData["ErrorMessage"] = "An error occurred while saving changes.";
                         throw;
                     }
                 }
@@ -148,6 +144,7 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
 
             var farmer = await _context.Farmers
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (farmer == null)
             {
                 return NotFound();
