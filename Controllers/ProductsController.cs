@@ -18,7 +18,9 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<ProductsController> _logger;
 
-        public ProductsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, ILogger<ProductsController> logger)
+        public ProductsController(ApplicationDbContext context,
+                                UserManager<ApplicationUser> userManager,
+                                ILogger<ProductsController> logger)
         {
             _context = context;
             _userManager = userManager;
@@ -26,6 +28,7 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
         }
 
         // GET: Products
+        // THIS IS WHERE THE INDEX METHOD GOES:
         public async Task<IActionResult> Index(
             string categoryFilter,
             DateTime? startDate,
@@ -112,9 +115,10 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
                 if (farmer != null)
                 {
                     ViewData["FarmerId"] = new SelectList(new[] { farmer }, "Id", "Name");
+                    ViewBag.FarmerName = farmer.Name;
                 }
             }
-            else
+            else if (User.IsInRole("Employee"))
             {
                 ViewData["FarmerId"] = new SelectList(_context.Farmers, "Id", "Name");
             }
@@ -125,34 +129,247 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
         // POST: Products/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-    
-        public async Task<IActionResult> Create([Bind("Name,Category,ProductionDate,FarmerId")] Product product)
-
+        public async Task<IActionResult> Create([Bind("Id,Name,Category,ProductionDate,FarmerId")] Product product)
         {
-            if (ModelState.IsValid)
+            try
             {
-                if (User.IsInRole("Farmer"))
+                if (ModelState.IsValid)
                 {
-                    var user = await _userManager.GetUserAsync(User);
-                    var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == user.Email);
-
-                    if (farmer == null)
+                    // For Farmers, automatically set their ID
+                    if (User.IsInRole("Farmer"))
                     {
-                        ModelState.AddModelError("", "Farmer profile not found.");
+                        var user = await _userManager.GetUserAsync(User);
+                        var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == user.Email);
+
+                        if (farmer == null)
+                        {
+                            ModelState.AddModelError("", "Farmer profile not found.");
+                            _logger.LogWarning($"Farmer not found for user {user.Email}");
+                            return View(product);
+                        }
+
+                        product.FarmerId = farmer.Id;
+                        _logger.LogInformation($"Assigned FarmerId {farmer.Id} to product");
+                    }
+                    // For Employees, ensure they selected a farmer
+                    else if (User.IsInRole("Employee") && product.FarmerId == 0)
+                    {
+                        ModelState.AddModelError("FarmerId", "Please select a farmer.");
+                        ViewData["FarmerId"] = new SelectList(_context.Farmers, "Id", "Name");
                         return View(product);
                     }
 
-                    product.FarmerId = farmer.Id; // Automatically set the FarmerId for Farmer role
-                }
+                
 
-                _context.Add(product);
-                await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Product created successfully!"; // Add success message
-                return RedirectToAction("Index"); // Ensure it's redirecting to Index view
+                    _context.Add(product);
+                    var result = await _context.SaveChangesAsync();
+                    _logger.LogInformation($"SaveChangesAsync result: {result} rows affected");
+
+                    if (result > 0)
+                    {
+                        TempData["SuccessMessage"] = "Product created successfully!";
+                        return RedirectToAction(nameof(Index));
+                    }
+                    else
+                    {
+                        _logger.LogWarning("SaveChangesAsync affected 0 rows");
+                        ModelState.AddModelError("", "Failed to save product to database.");
+                    }
+                }
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "Database error creating product");
+                ModelState.AddModelError("", "A database error occurred while creating the product.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error creating product");
+                ModelState.AddModelError("", "An unexpected error occurred. Please try again.");
+            }
+
+            // Repopulate dropdowns if we return to the view
+            if (User.IsInRole("Farmer"))
+            {
+                var user = await _userManager.GetUserAsync(User);
+                var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == user.Email);
+                if (farmer != null)
+                {
+                    ViewData["FarmerId"] = new SelectList(new[] { farmer }, "Id", "Name");
+                    ViewBag.FarmerName = farmer.Name;
+                }
+            }
+            else
+            {
+                ViewData["FarmerId"] = new SelectList(_context.Farmers, "Id", "Name");
+            }
+
+            return View(product);
+        }
+
+        // GET: Products/Edit/5
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            // Check if user is authorized to edit this product
+            if (User.IsInRole("Farmer"))
+            {
+                var user = await _userManager.GetUserAsync(User);
+                var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == user.Email);
+                if (farmer == null || product.FarmerId != farmer.Id)
+                {
+                    return Forbid();
+                }
+                ViewData["FarmerId"] = new SelectList(new[] { farmer }, "Id", "Name");
+                ViewBag.FarmerName = farmer.Name;
+            }
+            else
+            {
+                ViewData["FarmerId"] = new SelectList(_context.Farmers, "Id", "Name");
+            }
+
+            return View(product);
+        }
+
+        // POST: Products/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Category,ProductionDate,FarmerId")] Product product)
+        {
+            if (id != product.Id)
+            {
+                return NotFound();
+            }
+
+            // Check if user is authorized to edit this product
+            if (User.IsInRole("Farmer"))
+            {
+                var user = await _userManager.GetUserAsync(User);
+                var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == user.Email);
+                if (farmer == null || product.FarmerId != farmer.Id)
+                {
+                    return Forbid();
+                }
+                product.FarmerId = farmer.Id; // Ensure FarmerId can't be changed
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(product);
+                    await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = "Product updated successfully!";
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!ProductExists(product.Id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                return RedirectToAction(nameof(Index));
             }
 
             // Repopulate dropdown if validation fails
+            if (User.IsInRole("Farmer"))
+            {
+                var user = await _userManager.GetUserAsync(User);
+                var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == user.Email);
+                if (farmer != null)
+                {
+                    ViewData["FarmerId"] = new SelectList(new[] { farmer }, "Id", "Name");
+                    ViewBag.FarmerName = farmer.Name;
+                }
+            }
+            else
+            {
+                ViewData["FarmerId"] = new SelectList(_context.Farmers, "Id", "Name");
+            }
+
             return View(product);
+        }
+
+        // GET: Products/Delete/5
+        public async Task<IActionResult> Delete(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var product = await _context.Products
+                .Include(p => p.Farmer)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            // Check if user is authorized to delete this product
+            if (User.IsInRole("Farmer"))
+            {
+                var user = await _userManager.GetUserAsync(User);
+                var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == user.Email);
+                if (farmer == null || product.FarmerId != farmer.Id)
+                {
+                    return Forbid();
+                }
+            }
+
+            return View(product);
+        }
+
+        // POST: Products/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            // Check if user is authorized to delete this product
+            if (User.IsInRole("Farmer"))
+            {
+                var user = await _userManager.GetUserAsync(User);
+                var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == user.Email);
+                if (farmer == null || product.FarmerId != farmer.Id)
+                {
+                    return Forbid();
+                }
+            }
+
+            try
+            {
+                _context.Products.Remove(product);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Product deleted successfully!";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting product");
+                TempData["ErrorMessage"] = "An error occurred while deleting the product.";
+            }
+
+            return RedirectToAction(nameof(Index));
         }
 
         private bool ProductExists(int id)
