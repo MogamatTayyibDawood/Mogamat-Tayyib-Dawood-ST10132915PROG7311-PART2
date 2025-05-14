@@ -1,0 +1,59 @@
+﻿@model ErrorViewModel
+@{
+    ViewData["Title"] = "Error";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h2 class="card-title"><i class="bi bi-exclamation-triangle me-2"></i>Error</h2>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        <strong class="text-danger">An error occurred while processing your request.</strong>
+                    </p>
+
+                    @if (Model.ShowRequestId)
+                    {
+                        <p class="card-text"><strong>Request ID:</strong> <code>@Model.RequestId</code></p>
+                    }
+
+                    <h5 class="card-title mt-4">Development Mode</h5>
+                    <p class="card-text">
+                        Swapping to <strong>Development</strong> environment will display more detailed information
+                        about the error that occurred.
+                    </p>
+                    <p class="card-text">
+                        <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
+                        It can result in displaying sensitive information from exceptions to end users.
+                        For local debugging, enable the <strong>Development</strong> environment by setting
+                        the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
+                        and restarting the app.
+                    </p>
+
+                    @if (Model.ShowStackTrace)
+                    {
+                        <h5 class="card-title mt-4">Stack Trace</h5>
+                        <textarea class="form-control" rows="5" readonly>@Model.StackTrace</textarea>
+                    }
+
+                    @if (Model.ShowPath)
+                    {
+                        <p class="card-text mt-4"><strong>Path:</strong> @Model.Path</p>
+                    }
+
+                    <p class="card-text mt-4"><strong>Error Time:</strong> @Model.ErrorTime</p>
+                    @if (!string.IsNullOrEmpty(Model.UserId))
+                    {
+                        <p class="card-text"><strong>User:</strong> @Model.UserId</p>
+                    }
+                </div>
+                <div class="card-footer text-muted">
+                    Please contact support if the issue persists.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

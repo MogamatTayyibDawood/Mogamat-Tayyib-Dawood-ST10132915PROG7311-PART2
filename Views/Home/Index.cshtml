@@ -1,0 +1,148 @@
+﻿@{
+    ViewData["Title"] = "Agri-Energy Connect";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-success text-white">
+                    <h2><i class="bi bi-lightning-charge"></i> Welcome to Agri-Energy Connect</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">
+                        Bridging sustainable agriculture with green energy solutions for a better tomorrow.
+                    </p>
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <div class="alert alert-success">
+                            <h5>Welcome back, @User.Identity.Name!</h5>
+                            <p>
+                                You are logged in as:
+                                @if (User.IsInRole("Employee"))
+                                {
+                                    <span class="badge bg-primary">Employee</span>
+                                }
+                                else if (User.IsInRole("Farmer"))
+                                {
+                                    <span class="badge bg-success">Farmer</span>
+                                }
+                            </p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <p>
+                                Please <a asp-controller="Account" asp-action="Login" class="alert-link">login</a> or
+                                <a asp-controller="Account" asp-action="Register" class="alert-link">register</a> to access all features.
+                            </p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        @if (User.Identity.IsAuthenticated)
+        {
+            <div class="col-md-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-speedometer2"></i> Quick Stats</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (User.IsInRole("Employee"))
+                        {
+                            <div class="mb-3">
+                                <h6><i class="bi bi-people-fill"></i> Farmers Registered</h6>
+                                <h3 class="text-success">@ViewBag.FarmerCount</h3>
+                            </div>
+                            <div class="mb-3">
+                                <h6><i class="bi bi-box-seam"></i> Total Products</h6>
+                                <h3 class="text-success">@ViewBag.ProductCount</h3>
+                            </div>
+                        }
+                        else if (User.IsInRole("Farmer"))
+                        {
+                            <div class="mb-3">
+                                <h6><i class="bi bi-box-seam"></i> Your Products</h6>
+                                <h3 class="text-success">@ViewBag.ProductCount</h3>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    @if (User.Identity.IsAuthenticated && (ViewBag.Categories != null && ViewBag.CategoryCounts != null))
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Product Categories Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="categoryChart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    @if (User.Identity.IsAuthenticated && (ViewBag.Categories != null && ViewBag.CategoryCounts != null))
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const ctx = document.getElementById('categoryChart').getContext('2d');
+                const chart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: @Html.Raw(Json.Serialize(ViewBag.Categories)),
+                        datasets: [{
+                            data: @Html.Raw(Json.Serialize(ViewBag.CategoryCounts)),
+                            backgroundColor: [
+                                '#4e73df',
+                                '#1cc88a',
+                                '#36b9cc',
+                                '#f6c23e',
+                                '#e74a3b',
+                                '#858796',
+                                '#5a5c69'
+                            ],
+                            hoverBackgroundColor: [
+                                '#2e59d9',
+                                '#17a673',
+                                '#2c9faf',
+                                '#dda20a',
+                                '#be2617',
+                                '#656776',
+                                '#3a3b45'
+                            ],
+                            hoverBorderColor: "rgba(234, 236, 244, 1)",
+                        }]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            },
+                            tooltip: {
+                                backgroundColor: "rgb(255,255,255)",
+                                bodyColor: "#858796",
+                                borderColor: '#dddfeb',
+                                borderWidth: 1,
+                                padding: 15,
+                                displayColors: true,
+                                caretPadding: 10,
+                            }
+                        }
+                    }
+                });
+            });
+        </script>
+    }
+}

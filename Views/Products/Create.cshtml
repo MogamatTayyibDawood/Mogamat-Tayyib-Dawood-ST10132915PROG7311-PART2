@@ -1,0 +1,64 @@
+﻿@model PROG7311_PART2_AgriEnergyConnect.Models.Product
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<PROG7311_PART2_AgriEnergyConnect.Models.ApplicationUser> UserManager
+
+@{
+    ViewData["Title"] = "Add New Product";
+    var isEmployee = User.IsInRole("Employee");
+}
+
+<div class="container mt-4">
+    <h2><i class="bi bi-box-seam"></i> @ViewData["Title"]</h2>
+    <hr />
+
+    <div asp-validation-summary="All" class="alert alert-danger"></div>
+
+    <form asp-action="Create" method="post">
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label">Product Name</label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Category" class="form-label">Category</label>
+            <input asp-for="Category" class="form-control" />
+            <span asp-validation-for="Category" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="ProductionDate" class="form-label">Production Date</label>
+            <input asp-for="ProductionDate" class="form-control" type="date" />
+            <span asp-validation-for="ProductionDate" class="text-danger"></span>
+        </div>
+
+        @if (User.IsInRole("Employee"))
+        {
+            <div class="mb-3">
+                <label asp-for="FarmerId" class="form-label">Farmer</label>
+                <select asp-for="FarmerId" class="form-select" asp-items="ViewBag.FarmerId"></select>
+                <span asp-validation-for="FarmerId" class="text-danger"></span>
+            </div>
+        }
+        else
+        {
+            <input type="hidden" asp-for="FarmerId" />
+        }
+
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i> Create
+            </button>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
