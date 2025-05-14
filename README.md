@@ -114,6 +114,7 @@ This prototype web application, "Agri-Energy Connect," is designed to connect th
     * Ensure that user-friendly error messages are displayed.
 
     ## Refernces
+  AI was used to aid in undersatnding the code and exploring certian techniques
     OpenAI (2025). ChatGPT. [online] ChatGPT. Available at: https://chatgpt.com/.
 
 Andy Runciman (2011). Part 4 - Creating the add product form 1 of 2. [online] YouTube. Available at: https://www.youtube.com/watch?v=qZP8Nqw2_qU [Accessed 14 May 2025].
