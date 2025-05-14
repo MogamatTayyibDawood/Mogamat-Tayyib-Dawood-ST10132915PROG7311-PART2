@@ -113,6 +113,22 @@ This prototype web application, "Agri-Energy Connect," is designed to connect th
     * Test scenarios that might cause errors (e.g., database connection issues, invalid input) and verify that the application handles them gracefully.
     * Ensure that user-friendly error messages are displayed.
 
+    ## Refernces
+    OpenAI (2025). ChatGPT. [online] ChatGPT. Available at: https://chatgpt.com/.
+
+Andy Runciman (2011). Part 4 - Creating the add product form 1 of 2. [online] YouTube. Available at: https://www.youtube.com/watch?v=qZP8Nqw2_qU [Accessed 14 May 2025].
+
+‌Raza, R. (2020). Design a Beautiful Flat Dashboard UI UX for Desktop Application in C# WinForm’s using Visual Studio. [online] Medium. Available at: https://medium.com/@riazraza0/designing-a-beautiful-flat-dashboard-ui-ux-for-desktop-application-in-c-winforms-using-visual-408f4dcb4d81 [Accessed 14 May 2025].
+
+‌C-sharpcorner.com. (2020). Insert Data Into The Database In Windows Form Using C#. [online] Available at: https://www.c-sharpcorner.com/UploadFile/009464/insert-data-into-database-in-window-form-using-C-Sharp/.
+
+‌SQLitebrowser (2019). DB Browser for SQLite. [online] Sqlitebrowser.org. Available at: https://sqlitebrowser.org/.
+
+‌TechEngineerSchool (2024). How to Use DB Browser for SQLite (Absolute Beginners Guide). [online] YouTube. Available at: https://www.youtube.com/watch?v=fPWiZhVjvIU.
+
+‌
+‌
+
 ## Conclusion
 
 This prototype provides a solid foundation for the Agri-Energy Connect platform. It demonstrates the core functionality for managing farmers and products and provides a user-friendly interface. Further development can build upon this foundation to create a comprehensive solution for connecting the agricultural sector with green energy solutions.
