@@ -125,7 +125,9 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
         // POST: Products/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Name,Category,ProductionDate")] Product product)
+    
+        public async Task<IActionResult> Create([Bind("Name,Category,ProductionDate,FarmerId")] Product product)
+
         {
             if (ModelState.IsValid)
             {

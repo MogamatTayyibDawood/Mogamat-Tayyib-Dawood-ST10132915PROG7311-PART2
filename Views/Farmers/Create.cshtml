@@ -1,117 +1,63 @@
-﻿@model Product
-
+﻿@model PROG7311_PART2_AgriEnergyConnect.Models.Product
 @{
-    ViewData["Title"] = "Add New Product";
+    ViewBag.Title = "Create Product";
 }
 
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>
-            <i class="bi bi-box me-2"></i>@ViewData["Title"]
-        </h1>
-        <a asp-action="Index" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> Back to List
-        </a>
+<h2>Create Product</h2>
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="form-group">
+        <label asp-for="Name" class="control-label"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
     </div>
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <i class="bi bi-card-checklist me-2"></i>Product Information
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <form asp-action="Create" method="post" class="needs-validation" novalidate>
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label asp-for="Name" class="form-label">
-                                    <i class="bi bi-box me-1"></i>Product Name
-                                </label>
-                                <input asp-for="Name" class="form-control" required />
-                                <div class="invalid-feedback">
-                                    Please provide a valid product name.
-                                </div>
-                                <span asp-validation-for="Name" class="text-danger"></span>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="Category" class="form-label">
-                                    <i class="bi bi-tags me-1"></i>Category
-                                </label>
-                                <input asp-for="Category" class="form-control" required />
-                                <div class="invalid-feedback">
-                                    Please provide a valid category.
-                                </div>
-                                <span asp-validation-for="Category" class="text-danger"></span>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label asp-for="ProductionDate" class="form-label">
-                                <i class="bi bi-calendar me-1"></i>Production Date
-                            </label>
-                            <input asp-for="ProductionDate" type="date" class="form-control" required />
-                            <div class="invalid-feedback">
-                                Please provide a valid production date.
-                            </div>
-                            <span asp-validation-for="ProductionDate" class="text-danger"></span>
-                        </div>
 
-                        <div class="mb-3">
-                            <label asp-for="FarmerId" class="form-label">
-                                <i class="bi bi-person me-1"></i>Farmer
-                            </label>
+    <div class="form-group">
+        <label asp-for="Category" class="control-label"></label>
+        <input asp-for="Category" class="form-control" />
+        <span asp-validation-for="Category" class="text-danger"></span>
+    </div>
 
-                            <!-- Use SelectList from ViewData -->
-                            <select asp-for="FarmerId" class="form-control" required>
-                                <option value="">Select a Farmer</option>
-                                @foreach (var farmer in (SelectList)ViewData["FarmerId"])
-                                {
-                                    <option value="@farmer.Value">@farmer.Text</option>
-                                }
-                            </select>
+    <div class="form-group">
+        <label asp-for="ProductionDate" class="control-label"></label>
+        <input asp-for="ProductionDate" class="form-control" type="date" />
+        <span asp-validation-for="ProductionDate" class="text-danger"></span>
+    </div>
 
-                            <div class="invalid-feedback">
-                                Please select a valid farmer.
-                            </div>
-                            <span asp-validation-for="FarmerId" class="text-danger"></span>
-                        </div>
-
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                            <button type="reset" class="btn btn-outline-secondary me-md-2">
-                                <i class="bi bi-arrow-counterclockwise"></i> Reset
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save"></i> Create Product
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+    @if (User.IsInRole("Employee"))
+    {
+        <div class="form-group">
+            <label for="FarmerId">Select Farmer</label>
+            <select asp-for="FarmerId" asp-items="ViewBag.FarmerId" class="form-control">
+                <option value="">-- Select Farmer --</option>
+            </select>
+            <span asp-validation-for="FarmerId" class="text-danger"></span>
         </div>
-    </div>
-</div>
+    }
+    else if (User.IsInRole("Farmer"))
+    {
+        <div class="form-group">
+            <label>Farmer</label>
+            <input type="text" class="form-control" value="@ViewBag.FarmerName" readonly />
+        </div>
+    }
+
+    <button type="submit" class="btn btn-primary">Create</button>
+</form>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-    <script>
-        (function () {
-            'use strict'
-
-            // Form validation example
-            var forms = document.querySelectorAll('.needs-validation')
-
-            Array.prototype.slice.call(forms)
-                .forEach(function (form) {
-                    form.addEventListener('submit', function (event) {
-                        if (!form.checkValidity()) {
-                            event.preventDefault()
-                            event.stopPropagation()
-                        }
-
-                        form.classList.add('was-validated')
-                    }, false)
-                })
-        })()
-    </script>
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }
