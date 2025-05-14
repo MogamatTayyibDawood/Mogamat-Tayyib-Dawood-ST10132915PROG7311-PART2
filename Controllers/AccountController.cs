@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using PROG7311_PART2_AgriEnergyConnect.Data;
 using PROG7311_PART2_AgriEnergyConnect.Models;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace PROG7311_PART2_AgriEnergyConnect.Controllers
 {
@@ -44,6 +43,7 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
                 // Ensure roles exist
                 if (!await _roleManager.RoleExistsAsync("Farmer"))
                     await _roleManager.CreateAsync(new IdentityRole("Farmer"));
+
                 if (!await _roleManager.RoleExistsAsync("Employee"))
                     await _roleManager.CreateAsync(new IdentityRole("Employee"));
 
@@ -55,8 +55,11 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
                 };
 
                 var result = await _userManager.CreateAsync(user, model.Password);
+
                 if (result.Succeeded)
                 {
+                    _logger.LogInformation("User created a new account with password.");
+
                     // Add user to selected role
                     await _userManager.AddToRoleAsync(user, model.Role);
 
@@ -69,28 +72,40 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
                             Email = model.Email,
                             ContactNumber = model.ContactNumber
                         };
-                        await _context.Farmers.AddAsync(farmer);
-                        await _context.SaveChangesAsync();
-                        _logger.LogInformation($"Farmer profile created for user: {model.Email}");
+
+                        try
+                        {
+                            await _context.Farmers.AddAsync(farmer);
+                            await _context.SaveChangesAsync();
+                            _logger.LogInformation($"Created farmer profile for {model.Email}");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error creating farmer profile");
+                            ModelState.AddModelError("", "Error creating farmer profile");
+                            return View(model);
+                        }
                     }
 
                     await _signInManager.SignInAsync(user, isPersistent: false);
-                    _logger.LogInformation($"User {model.Email} registered and logged in.");
                     return RedirectToAction("Index", "Home");
                 }
 
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError(string.Empty, error.Description);
-                    _logger.LogError($"Registration error for {model.Email}: {error.Description}");
+                    _logger.LogWarning($"User creation error: {error.Description}");
                 }
             }
 
-            // If we got this far, something failed, redisplay form
+        
             return View(model);
         }
 
-        [HttpGet]
+      
+    
+
+[HttpGet]
         public IActionResult Login(string returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
@@ -102,29 +117,26 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
         public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
+
             if (ModelState.IsValid)
             {
                 var result = await _signInManager.PasswordSignInAsync(
                     model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
+
                 if (result.Succeeded)
                 {
-                    _logger.LogInformation($"User {model.Email} logged in.");
                     return RedirectToLocal(returnUrl);
                 }
                 if (result.IsLockedOut)
                 {
-                    _logger.LogWarning($"User {model.Email} is locked out.");
                     return View("Lockout");
                 }
                 else
                 {
                     ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-                    _logger.LogWarning($"Invalid login attempt for user: {model.Email}");
                     return View(model);
                 }
             }
-
-            // If we got this far, something failed, redisplay form
             return View(model);
         }
 
@@ -133,7 +145,6 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
-            _logger.LogInformation($"User logged out.");
             return RedirectToAction("Index", "Home");
         }
 

@@ -1,7 +1,3 @@
-using System;
-using Microsoft.AspNetCore.Http;
-using System.Diagnostics;
-
 namespace PROG7311_PART2_AgriEnergyConnect.Models
 {
     public class ErrorViewModel
@@ -14,7 +10,7 @@ namespace PROG7311_PART2_AgriEnergyConnect.Models
         public string? UserId { get; set; }
 
         public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
-        public bool ShowStackTrace => !string.IsNullOrEmpty(StackTrace) && DebugMode; // Only show in Debug mode
+        public bool ShowStackTrace => !string.IsNullOrEmpty(StackTrace) && DebugMode;
         public bool ShowPath => !string.IsNullOrEmpty(Path);
 
         private bool DebugMode =>

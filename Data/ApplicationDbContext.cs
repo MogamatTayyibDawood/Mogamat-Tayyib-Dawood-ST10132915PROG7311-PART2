@@ -18,12 +18,12 @@ namespace PROG7311_PART2_AgriEnergyConnect.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure relationships
+            // Configure relationships only
             modelBuilder.Entity<Product>()
                 .HasOne(p => p.Farmer)
                 .WithMany(f => f.Products)
                 .HasForeignKey(p => p.FarmerId)
-                .OnDelete(DeleteBehavior.Cascade); // Important: Cascade delete
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

@@ -5,13 +5,13 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using PROG7311_PART2_AgriEnergyConnect.Data;
 using PROG7311_PART2_AgriEnergyConnect.Models;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-using System;
 
 namespace PROG7311_PART2_AgriEnergyConnect.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Farmer,Employee")]
     public class ProductsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -24,96 +24,142 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
         }
 
         // GET: Products
-        // GET: Products
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string categoryFilter, DateTime? startDate, DateTime? endDate, string searchString, int? pageNumber)
         {
-            var query = _context.Products.Include(p => p.Farmer).AsQueryable();
+            var products = _context.Products.Include(p => p.Farmer).AsQueryable();
 
             if (User.IsInRole("Farmer"))
             {
                 var currentUser = await _userManager.GetUserAsync(User);
                 var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == currentUser.Email);
+
                 if (farmer != null)
                 {
-                    query = query.Where(p => p.FarmerId == farmer.Id);
+                    products = products.Where(p => p.FarmerId == farmer.Id);
                 }
             }
 
-            return View(await query.ToListAsync());
-        }
-
-
-        // GET: Products/Create
-        public async Task<IActionResult> Create()
-        {
-            if (User.IsInRole("Employee"))
+            if (!string.IsNullOrEmpty(categoryFilter))
             {
-                var farmers = await _context.Farmers.ToListAsync();
-                ViewData["FarmerId"] = new SelectList(farmers, "Id", "Name");
-            }
-            else if (User.IsInRole("Farmer"))
-            {
-                var currentUser = await _userManager.GetUserAsync(User);
-                var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == currentUser.Email);
-                ViewData["FarmerId"] = new SelectList(new[] { farmer }, "Id", "Name", farmer?.Id);
+                products = products.Where(p => p.Category == categoryFilter);
             }
 
-            return View();
+            if (startDate.HasValue)
+            {
+                products = products.Where(p => p.ProductionDate >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                products = products.Where(p => p.ProductionDate <= endDate.Value);
+            }
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                products = products.Where(p =>
+                    p.Name.Contains(searchString) ||
+                    p.Category.Contains(searchString) ||
+                    p.Farmer.Name.Contains(searchString));
+            }
+
+            int pageSize = 10;
+            return View(await PaginatedList<Product>.CreateAsync(products.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
-
-        // POST: Products/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Name,Category,ProductionDate,FarmerId")] Product product)
+        // GET: Products/Details/5
+        public async Task<IActionResult> Details(int? id)
         {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var product = await _context.Products
+                .Include(p => p.Farmer)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (product == null)
+            {
+                return NotFound();
+            }
+
             if (User.IsInRole("Farmer"))
             {
                 var currentUser = await _userManager.GetUserAsync(User);
                 var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == currentUser.Email);
-                if (farmer == null)
+
+                if (farmer == null || product.FarmerId != farmer.Id)
                 {
-                    ModelState.AddModelError("", "Your farmer profile could not be found.");
-                    return View(product);
+                    return Forbid();
                 }
-
-                product.FarmerId = farmer.Id;
-            }
-
-            if (ModelState.IsValid)
-            {
-                _context.Add(product);
-                await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Product added successfully!";
-                return RedirectToAction(nameof(Index));
-            }
-
-            // Reload FarmerId dropdown if model state fails
-            if (User.IsInRole("Employee"))
-            {
-                ViewData["FarmerId"] = new SelectList(_context.Farmers, "Id", "Name", product.FarmerId);
-            }
-            else if (User.IsInRole("Farmer"))
-            {
-                var currentUser = await _userManager.GetUserAsync(User);
-                var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == currentUser.Email);
-                ViewData["FarmerId"] = new SelectList(new[] { farmer }, "Id", "Name", farmer.Id);
             }
 
             return View(product);
         }
 
-      
-
-// GET: Products/Details/5
-public async Task<IActionResult> Details(int? id)
+        // GET: Products/Create
+        public async Task<IActionResult> Create()
         {
-            if (id == null) return NotFound();
+            if (User.IsInRole("Farmer"))
+            {
+                var currentUser = await _userManager.GetUserAsync(User);
+                var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == currentUser.Email);
 
-            var product = await _context.Products
-                .Include(p => p.Farmer)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (product == null) return NotFound();
+                if (farmer == null)
+                {
+                    TempData["ErrorMessage"] = "You don't have a farmer profile. Please contact an administrator.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                ViewData["FarmerId"] = new SelectList(new List<Farmer> { farmer }, "Id", "Name");
+            }
+            else
+            {
+                ViewData["FarmerId"] = new SelectList(_context.Farmers, "Id", "Name");
+            }
+
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create([Bind("Name,Category,ProductionDate,FarmerId")] Product product)
+        {
+            if (ModelState.IsValid)
+            {
+                if (User.IsInRole("Farmer"))
+                {
+                    var currentUser = await _userManager.GetUserAsync(User);
+                    var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == currentUser.Email);
+
+                    if (farmer == null || product.FarmerId != farmer.Id)
+                    {
+                        ModelState.AddModelError("", "You can only add products for your own farm.");
+                        ViewData["FarmerId"] = new SelectList(new List<Farmer> { farmer }, "Id", "Name");
+                        return View(product);
+                    }
+                }
+
+                _context.Add(product);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Product created successfully!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (User.IsInRole("Farmer"))
+            {
+                var currentUser = await _userManager.GetUserAsync(User);
+                var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == currentUser.Email);
+
+                if (farmer != null)
+                {
+                    ViewData["FarmerId"] = new SelectList(new List<Farmer> { farmer }, "Id", "Name", product.FarmerId);
+                }
+            }
+            else
+            {
+                ViewData["FarmerId"] = new SelectList(_context.Farmers, "Id", "Name", product.FarmerId);
+            }
 
             return View(product);
         }
@@ -121,70 +167,193 @@ public async Task<IActionResult> Details(int? id)
         // GET: Products/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null) return NotFound();
+            if (id == null)
+            {
+                return NotFound();
+            }
 
             var product = await _context.Products.FindAsync(id);
-            if (product == null) return NotFound();
+            if (product == null)
+            {
+                return NotFound();
+            }
 
-            ViewData["FarmerId"] = new SelectList(_context.Farmers, "Id", "Name", product.FarmerId);
+            if (User.IsInRole("Farmer"))
+            {
+                var currentUser = await _userManager.GetUserAsync(User);
+                var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == currentUser.Email);
+
+                if (farmer == null || product.FarmerId != farmer.Id)
+                {
+                    return Forbid();
+                }
+
+                ViewData["FarmerId"] = new SelectList(new List<Farmer> { farmer }, "Id", "Name", product.FarmerId);
+            }
+            else
+            {
+                ViewData["FarmerId"] = new SelectList(_context.Farmers, "Id", "Name", product.FarmerId);
+            }
+
             return View(product);
         }
 
-        // POST: Products/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Category,ProductionDate,FarmerId")] Product product)
         {
-            if (id != product.Id) return NotFound();
+            if (id != product.Id)
+            {
+                return NotFound();
+            }
 
             if (ModelState.IsValid)
             {
                 try
                 {
+                    if (User.IsInRole("Farmer"))
+                    {
+                        var currentUser = await _userManager.GetUserAsync(User);
+                        var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == currentUser.Email);
+
+                        if (farmer == null || product.FarmerId != farmer.Id)
+                        {
+                            ModelState.AddModelError("", "You can only edit products for your own farm.");
+                            ViewData["FarmerId"] = new SelectList(new List<Farmer> { farmer }, "Id", "Name", product.FarmerId);
+                            return View(product);
+                        }
+                    }
+
                     _context.Update(product);
                     await _context.SaveChangesAsync();
                     TempData["SuccessMessage"] = "Product updated successfully!";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ProductExists(product.Id)) return NotFound();
-                    else throw;
+                    if (!ProductExists(product.Id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
-
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewData["FarmerId"] = new SelectList(_context.Farmers, "Id", "Name", product.FarmerId);
+            if (User.IsInRole("Employee"))
+            {
+                ViewData["FarmerId"] = new SelectList(_context.Farmers, "Id", "Name", product.FarmerId);
+            }
+            else
+            {
+                var currentUser = await _userManager.GetUserAsync(User);
+                var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == currentUser.Email);
+
+                if (farmer != null)
+                {
+                    ViewData["FarmerId"] = new SelectList(new List<Farmer> { farmer }, "Id", "Name", product.FarmerId);
+                }
+            }
+
             return View(product);
         }
 
         // GET: Products/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null) return NotFound();
+            if (id == null)
+            {
+                return NotFound();
+            }
 
             var product = await _context.Products
                 .Include(p => p.Farmer)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (product == null) return NotFound();
+
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            if (User.IsInRole("Farmer"))
+            {
+                var currentUser = await _userManager.GetUserAsync(User);
+                var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == currentUser.Email);
+
+                if (farmer == null || product.FarmerId != farmer.Id)
+                {
+                    return Forbid();
+                }
+            }
 
             return View(product);
         }
 
-        // POST: Products/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var product = await _context.Products.FindAsync(id);
+
             if (product != null)
             {
+                if (User.IsInRole("Farmer"))
+                {
+                    var currentUser = await _userManager.GetUserAsync(User);
+                    var farmer = await _context.Farmers.FirstOrDefaultAsync(f => f.Email == currentUser.Email);
+
+                    if (farmer == null || product.FarmerId != farmer.Id)
+                    {
+                        return Forbid();
+                    }
+                }
+
                 _context.Products.Remove(product);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Product deleted.";
+                TempData["SuccessMessage"] = "Product deleted successfully!";
             }
 
             return RedirectToAction(nameof(Index));
+        }
+
+        [Authorize(Roles = "Employee")]
+        public async Task<IActionResult> Filter()
+        {
+            ViewData["FarmerId"] = new SelectList(_context.Farmers, "Id", "Name");
+            ViewData["Categories"] = new SelectList(await _context.Products.Select(p => p.Category).Distinct().ToListAsync());
+            return View(new List<Product>());
+        }
+
+        [Authorize(Roles = "Employee")]
+        public async Task<IActionResult> Filter(int? farmerId, string category, DateTime? startDate, DateTime? endDate)
+        {
+            var products = _context.Products.Include(p => p.Farmer).AsQueryable();
+
+            if (farmerId.HasValue)
+            {
+                products = products.Where(p => p.FarmerId == farmerId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(category))
+            {
+                products = products.Where(p => p.Category == category);
+            }
+
+            if (startDate.HasValue)
+            {
+                products = products.Where(p => p.ProductionDate >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                products = products.Where(p => p.ProductionDate <= endDate.Value);
+            }
+
+            ViewData["FarmerId"] = new SelectList(_context.Farmers, "Id", "Name", farmerId);
+            ViewData["Categories"] = new SelectList(await _context.Products.Select(p => p.Category).Distinct().ToListAsync(), category);
+            return View(await products.ToListAsync());
         }
 
         private bool ProductExists(int id)

@@ -5,7 +5,6 @@ using PROG7311_PART2_AgriEnergyConnect.Data;
 using PROG7311_PART2_AgriEnergyConnect.Models;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace PROG7311_PART2_AgriEnergyConnect.Controllers
 {
@@ -13,22 +12,15 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
     public class FarmersController : Controller
     {
         private readonly ApplicationDbContext _context;
-        private readonly ILogger<FarmersController> _logger;
 
-        public FarmersController(ApplicationDbContext context, ILogger<FarmersController> logger)
+        public FarmersController(ApplicationDbContext context)
         {
             _context = context;
-            _logger = logger;
         }
 
         // GET: Farmers
-        public async Task<IActionResult> Index(string searchString, int? pageNumber, string sortOrder)
+        public async Task<IActionResult> Index(string searchString, int? pageNumber)
         {
-            ViewBag.CurrentSort = sortOrder;
-            ViewBag.NameSortParam = String.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
-            ViewBag.EmailSortParam = sortOrder == "Email" ? "email_desc" : "Email";
-            ViewBag.ContactSortParam = sortOrder == "ContactNumber" ? "contact_desc" : "ContactNumber";
-
             var farmers = _context.Farmers.AsQueryable();
 
             if (!string.IsNullOrEmpty(searchString))
@@ -39,35 +31,8 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
                     f.ContactNumber.Contains(searchString));
             }
 
-            switch (sortOrder)
-            {
-                case "name_desc":
-                    farmers = farmers.OrderByDescending(f => f.Name);
-                    break;
-                case "Email":
-                    farmers = farmers.OrderBy(f => f.Email);
-                    break;
-                case "email_desc":
-                    farmers = farmers.OrderByDescending(f => f.Email);
-                    break;
-                case "ContactNumber":
-                    farmers = farmers.OrderBy(f => f.ContactNumber);
-                    break;
-                case "contact_desc":
-                    farmers = farmers.OrderByDescending(f => f.ContactNumber);
-                    break;
-                default:
-                    farmers = farmers.OrderBy(f => f.Name);
-                    break;
-            }
-
             int pageSize = 10;
-            ViewBag.TotalFarmers = farmers.Count();
-            var paginatedList = await PaginatedList<Farmer>.CreateAsync(farmers.AsNoTracking(), pageNumber ?? 1, pageSize);
-            ViewBag.CurrentPage = paginatedList.PageIndex;
-            ViewBag.TotalPages = paginatedList.TotalPages;
-
-            return View(paginatedList);
+            return View(await PaginatedList<Farmer>.CreateAsync(farmers.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
         // GET: Farmers/Details/5
@@ -75,7 +40,6 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
         {
             if (id == null)
             {
-                _logger.LogError("Details requested for null farmer ID.");
                 return NotFound();
             }
 
@@ -85,7 +49,6 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
 
             if (farmer == null)
             {
-                _logger.LogError($"Farmer with ID {id} not found.");
                 return NotFound();
             }
 
@@ -113,10 +76,8 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
                 _context.Add(farmer);
                 await _context.SaveChangesAsync();
                 TempData["SuccessMessage"] = "Farmer created successfully!";
-                _logger.LogInformation($"Farmer created: {farmer.Name} ({farmer.Email})");
                 return RedirectToAction(nameof(Index));
             }
-            _logger.LogWarning("Farmer creation failed due to validation errors.");
             return View(farmer);
         }
 
@@ -125,18 +86,14 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
         {
             if (id == null)
             {
-                _logger.LogError("Edit requested for null farmer ID.");
                 return NotFound();
             }
 
             var farmer = await _context.Farmers.FindAsync(id);
-
             if (farmer == null)
             {
-                _logger.LogError($"Farmer with ID {id} not found for edit.");
                 return NotFound();
             }
-
             return View(farmer);
         }
 
@@ -146,7 +103,6 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
         {
             if (id != farmer.Id)
             {
-                _logger.LogError($"Edit attempted with mismatched farmer IDs: {id} vs. {farmer.Id}");
                 return NotFound();
             }
 
@@ -164,25 +120,21 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
                     _context.Update(farmer);
                     await _context.SaveChangesAsync();
                     TempData["SuccessMessage"] = "Farmer updated successfully!";
-                    _logger.LogInformation($"Farmer updated: {farmer.Name} ({farmer.Email})");
                 }
                 catch (DbUpdateConcurrencyException)
                 {
                     if (!FarmerExists(farmer.Id))
                     {
-                        _logger.LogError($"Farmer with ID {farmer.Id} not found during edit.");
                         return NotFound();
                     }
                     else
                     {
                         TempData["ErrorMessage"] = "An error occurred while saving changes.";
-                        _logger.LogError($"Concurrency error while updating farmer: {farmer.Name} ({farmer.Email})");
                         throw;
                     }
                 }
                 return RedirectToAction(nameof(Index));
             }
-            _logger.LogWarning($"Farmer edit failed due to validation errors: {farmer.Name} ({farmer.Email})");
             return View(farmer);
         }
 
@@ -191,16 +143,13 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
         {
             if (id == null)
             {
-                _logger.LogError("Delete requested for null farmer ID.");
                 return NotFound();
             }
 
             var farmer = await _context.Farmers
                 .FirstOrDefaultAsync(m => m.Id == id);
-
             if (farmer == null)
             {
-                _logger.LogError($"Farmer with ID {id} not found for deletion.");
                 return NotFound();
             }
 
@@ -219,18 +168,12 @@ namespace PROG7311_PART2_AgriEnergyConnect.Controllers
                     _context.Farmers.Remove(farmer);
                     await _context.SaveChangesAsync();
                     TempData["SuccessMessage"] = "Farmer deleted successfully!";
-                    _logger.LogInformation($"Farmer deleted: {farmer.Name} ({farmer.Email})");
                 }
-                catch (DbUpdateException ex)
+                catch (DbUpdateException)
                 {
                     TempData["ErrorMessage"] = "Cannot delete this farmer because they have associated products.";
-                    _logger.LogError(ex, $"Attempt to delete farmer with associated products: {farmer.Name} ({farmer.Email})");
                     return RedirectToAction(nameof(Index));
                 }
-            }
-            else
-            {
-                _logger.LogError($"Attempt to delete non-existent farmer with ID: {id}");
             }
             return RedirectToAction(nameof(Index));
         }

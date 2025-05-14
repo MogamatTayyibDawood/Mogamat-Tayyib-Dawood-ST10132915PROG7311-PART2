@@ -4,16 +4,18 @@ using PROG7311_PART2_AgriEnergyConnect.Data;
 using PROG7311_PART2_AgriEnergyConnect.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Add services to the container
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
     options.LogTo(Console.WriteLine, LogLevel.Information);
 });
 
+// Add database error page filter (only for development)
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
@@ -27,6 +29,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 })
 .AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<ApplicationDbContext>();
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
@@ -40,11 +43,11 @@ builder.Services.AddSession(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    app.UseMigrationsEndPoint();
+    app.UseMigrationsEndPoint(); // This provides the /Migrations endpoint
 }
 else
 {
@@ -59,7 +62,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
 
-// Seed the database
+// Seed database
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -74,7 +77,8 @@ using (var scope = app.Services.CreateScope())
         await context.Database.MigrateAsync();
         logger.LogInformation("Database migrations applied successfully");
 
-        await SeedData.Initialize(context, userManager, roleManager, logger); // Keep this line
+        // Seed initial data
+        await SeedData.Initialize(context, userManager, roleManager, logger);
     }
     catch (Exception ex)
     {

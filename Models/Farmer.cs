@@ -22,7 +22,6 @@ namespace PROG7311_PART2_AgriEnergyConnect.Models
         [Display(Name = "Contact Number")]
         public string ContactNumber { get; set; }
 
-       
         public virtual ICollection<Product> Products { get; set; } = new List<Product>();
     }
 }
