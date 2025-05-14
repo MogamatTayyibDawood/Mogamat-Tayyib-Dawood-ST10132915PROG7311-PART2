@@ -57,19 +57,6 @@
                             <span asp-validation-for="ProductionDate" class="text-danger"></span>
                         </div>
 
-                        <div class="mb-3">
-                            <label asp-for="FarmerId" class="form-label">
-                                <i class="bi bi-person-badge me-1"></i>Farmer
-                            </label>
-                            <select asp-for="FarmerId" class="form-control" asp-items="ViewBag.Farmers" required>
-                                <option value="">Select a Farmer</option>
-                            </select>
-                            <div class="invalid-feedback">
-                                Please select a valid farmer.
-                            </div>
-                            <span asp-validation-for="FarmerId" class="text-danger"></span>
-                        </div>
-
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                             <button type="reset" class="btn btn-outline-secondary me-md-2">
                                 <i class="bi bi-arrow-counterclockwise"></i> Reset

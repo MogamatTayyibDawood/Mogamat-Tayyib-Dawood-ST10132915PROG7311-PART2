@@ -1,12 +1,13 @@
-﻿@model Farmer
+﻿@model Product
+
 @{
-    ViewData["Title"] = "Add New Farmer";
+    ViewData["Title"] = "Add New Product";
 }
 
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>
-            <i class="bi bi-person-plus me-2"></i>@ViewData["Title"]
+            <i class="bi bi-box me-2"></i>@ViewData["Title"]
         </h1>
         <a asp-action="Index" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Back to List
@@ -17,92 +18,74 @@
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
-                        <i class="bi bi-card-checklist me-2"></i>Farmer Information
+                        <i class="bi bi-card-checklist me-2"></i>Product Information
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form asp-action="Create" class="needs-validation" novalidate>
+                    <form asp-action="Create" method="post" class="needs-validation" novalidate>
                         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label asp-for="Name" class="form-label">
-                                    <i class="bi bi-person-badge me-1"></i>Full Name
+                                    <i class="bi bi-box me-1"></i>Product Name
                                 </label>
                                 <input asp-for="Name" class="form-control" required />
                                 <div class="invalid-feedback">
-                                    Please provide a valid name.
+                                    Please provide a valid product name.
                                 </div>
                                 <span asp-validation-for="Name" class="text-danger"></span>
                             </div>
                             <div class="col-md-6">
-                                <label asp-for="ContactNumber" class="form-label">
-                                    <i class="bi bi-telephone me-1"></i>Contact Number
+                                <label asp-for="Category" class="form-label">
+                                    <i class="bi bi-tags me-1"></i>Category
                                 </label>
-                                <input asp-for="ContactNumber" class="form-control" required />
+                                <input asp-for="Category" class="form-control" required />
                                 <div class="invalid-feedback">
-                                    Please provide a valid contact number.
+                                    Please provide a valid category.
                                 </div>
-                                <span asp-validation-for="ContactNumber" class="text-danger"></span>
+                                <span asp-validation-for="Category" class="text-danger"></span>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label asp-for="Email" class="form-label">
-                                <i class="bi bi-envelope me-1"></i>Email Address
+                            <label asp-for="ProductionDate" class="form-label">
+                                <i class="bi bi-calendar me-1"></i>Production Date
                             </label>
-                            <input asp-for="Email" type="email" class="form-control" required />
+                            <input asp-for="ProductionDate" type="date" class="form-control" required />
                             <div class="invalid-feedback">
-                                Please provide a valid email address.
+                                Please provide a valid production date.
                             </div>
-                            <span asp-validation-for="Email" class="text-danger"></span>
+                            <span asp-validation-for="ProductionDate" class="text-danger"></span>
                         </div>
+
+                        <div class="mb-3">
+                            <label asp-for="FarmerId" class="form-label">
+                                <i class="bi bi-person me-1"></i>Farmer
+                            </label>
+
+                            <!-- Use SelectList from ViewData -->
+                            <select asp-for="FarmerId" class="form-control" required>
+                                <option value="">Select a Farmer</option>
+                                @foreach (var farmer in (SelectList)ViewData["FarmerId"])
+                                {
+                                    <option value="@farmer.Value">@farmer.Text</option>
+                                }
+                            </select>
+
+                            <div class="invalid-feedback">
+                                Please select a valid farmer.
+                            </div>
+                            <span asp-validation-for="FarmerId" class="text-danger"></span>
+                        </div>
+
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                             <button type="reset" class="btn btn-outline-secondary me-md-2">
                                 <i class="bi bi-arrow-counterclockwise"></i> Reset
                             </button>
                             <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save"></i> Create Farmer
+                                <i class="bi bi-save"></i> Create Product
                             </button>
                         </div>
                     </form>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card shadow-sm">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">
-                        <i class="bi bi-info-circle me-2"></i>Guidance
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <h6 class="alert-heading">
-                            <i class="bi bi-lightbulb"></i> Before you begin
-                        </h6>
-                        <hr>
-                        <ul class="mb-0">
-                            <li>Verify the farmer doesn't already exist in the system.</li>
-                            <li>Collect all necessary contact information.</li>
-                            <li>Ensure the email address is correct and active.</li>
-                        </ul>
-                    </div>
-                    <h6 class="mt-4">
-                        <i class="bi bi-check-circle"></i> Required Fields
-                    </h6>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Full Name
-                            <span class="badge bg-primary rounded-pill">Required</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Email Address
-                            <span class="badge bg-primary rounded-pill">Required</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Contact Number
-                            <span class="badge bg-primary rounded-pill">Required</span>
-                        </li>
-                    </ul>
                 </div>
             </div>
         </div>
@@ -112,14 +95,12 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        // Form validation example
         (function () {
             'use strict'
 
-            // Fetch all the forms we want to apply custom Bootstrap validation styles to
+            // Form validation example
             var forms = document.querySelectorAll('.needs-validation')
 
-            // Loop over them and prevent submission
             Array.prototype.slice.call(forms)
                 .forEach(function (form) {
                     form.addEventListener('submit', function (event) {
