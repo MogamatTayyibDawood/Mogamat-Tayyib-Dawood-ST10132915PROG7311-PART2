@@ -31,7 +31,7 @@ This prototype web application, "Agri-Energy Connect," is designed to connect th
     * .NET Core SDK
 2.  **Clone the Repository:**
     ```bash
-    git clone <repository_url>
+    git clone <https://github.com/MogamatTayyibDawood/Mogamat-Tayyib-Dawood-ST10132915PROG7311-PART2.git>
     cd Agri-Energy-Connect
     ```
 3.  **Database Setup:**
